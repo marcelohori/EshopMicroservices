@@ -1,0 +1,38 @@
+﻿services:
+  catalogdb:
+    image: postgres:18
+    container_name: postgres_catalog
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: CatalogDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_catalog:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  catalog.api:
+    image: catalogapi
+    build:
+      context: .
+      dockerfile: Services/Catalog/Catalog.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__CatalogDb=Host=catalogdb;Port=5432;Database=CatalogDb;Username=postgres;Password=postgres;SslMode=Disable;
+    depends_on:
+      catalogdb:
+        condition: service_healthy
+    ports:
+      - "6000:8080"
+      - "6060:8081"
+
+volumes:
+  postgres_catalog:
+    driver: local
